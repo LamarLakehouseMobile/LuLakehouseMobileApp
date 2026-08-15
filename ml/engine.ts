@@ -579,6 +579,16 @@ export const ENGINE_HTML = `<!DOCTYPE html>
         return { type: 'classCleared', classId: payload.classId, stats: stats() };
       },
 
+      renameClass: function (payload) {
+        var id = String(payload.classId);
+        var nextName = String(payload.className || '').trim();
+        if (!nextName) {
+          throw new Error('renameClass needs a className');
+        }
+        state.classNames[id] = nextName;
+        return { type: 'classRenamed', classId: id, className: nextName, stats: stats() };
+      },
+
       getStatus: function () {
         return { type: 'status', stats: stats() };
       }

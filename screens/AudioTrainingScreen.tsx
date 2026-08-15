@@ -1,7 +1,7 @@
 import { useML } from '../context/MLContext';
 import { File } from 'expo-file-system';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
@@ -39,6 +39,8 @@ export default function AudioTrainingScreen() {
   const [statusMessage, setStatusMessage] = useState('Ready to collect audio samples.');
   const [recordingSamples, setRecordingSamples] = useState<Record<string, RecordedSample[]>>({});
   const [recordingClassId, setRecordingClassId] = useState<string | null>(null);
+  const [renameTarget, setRenameTarget] = useState<{ id: string; name: string } | null>(null);
+  const [renameDraft, setRenameDraft] = useState('');
   const [hasTrained, setHasTrained] = useState(false);
 
   const audioRecorder = useAudioRecorder(recordingOptions);
@@ -121,6 +123,39 @@ export default function AudioTrainingScreen() {
   const handleAction = (message: string) => {
     setStatusMessage(message);
     setActiveMenuId(null);
+  };
+
+  const handleRenameClass = (classId: string, currentName: string) => {
+    setRenameTarget({ id: classId, name: currentName });
+    setRenameDraft(currentName);
+    setActiveMenuId(null);
+  };
+
+  const confirmRenameClass = async () => {
+    if (!renameTarget) return;
+
+    const nextName = renameDraft.trim() || renameTarget.name;
+
+    const ack = await sendToWebView({
+      type: 'renameClass',
+      classId: renameTarget.id,
+      className: nextName,
+    });
+
+    if (!ack.ok) {
+      setStatusMessage(`Rename failed: ${ack.error}`);
+      setRenameTarget(null);
+      setRenameDraft('');
+      return;
+    }
+
+    setClasses((current) =>
+      current.map((item) => (item.id === renameTarget.id ? { ...item, name: nextName } : item)),
+    );
+
+    setStatusMessage(`Renamed class to ${nextName}.`);
+    setRenameTarget(null);
+    setRenameDraft('');
   };
 
   const confirmRemoveAll = (classId: string) => {
@@ -331,6 +366,10 @@ export default function AudioTrainingScreen() {
 
               {activeMenuId === item.id && (
                 <View style={styles.menuPanel}>
+                  <TouchableOpacity onPress={() => handleRenameClass(item.id, item.name)}>
+                    <Text style={styles.menuItem}>Rename Class</Text>
+                  </TouchableOpacity>
+
                   {!item.isDefault && (
                     <>
                       <TouchableOpacity onPress={() => handleDeleteClass(item.id)}>
@@ -416,6 +455,31 @@ export default function AudioTrainingScreen() {
           </Text>
         </TouchableOpacity>
       </View>
+
+      <Modal visible={renameTarget !== null} transparent animationType="fade" onRequestClose={() => setRenameTarget(null)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Rename class</Text>
+            <Text style={styles.modalSubtitle}>Choose a new name for this class.</Text>
+            <TextInput
+              autoFocus
+              value={renameDraft}
+              onChangeText={setRenameDraft}
+              placeholder="Class name"
+              style={styles.modalInput}
+              onSubmitEditing={confirmRenameClass}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity onPress={() => setRenameTarget(null)} style={styles.modalCancelButton}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={confirmRenameClass} style={styles.modalConfirmButton}>
+                <Text style={styles.modalConfirmText}>Rename</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -485,6 +549,70 @@ const styles = StyleSheet.create({
   },
   globalButtonDisabled: {
     opacity: 0.5,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  modalCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 6,
+  },
+  modalSubtitle: {
+    color: '#475569',
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: '#0F172A',
+    backgroundColor: '#F8FAFC',
+    marginBottom: 16,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+  },
+  modalCancelButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+  },
+  modalCancelText: {
+    color: '#475569',
+    fontWeight: '700',
+  },
+  modalConfirmButton: {
+    backgroundColor: '#2563EB',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+  },
+  modalConfirmText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   headerRow: {
     flexDirection: 'row',
