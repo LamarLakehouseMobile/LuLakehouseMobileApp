@@ -3,11 +3,30 @@
 # dependencies
 node_modules/
 
-# Expo
+# Expo / React Native
 .expo/
+.expo-shared/
+.expo-build/
 dist/
 web-build/
 expo-env.d.ts
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+pnpm-debug.log*
+*.log
+
+# local env files / secrets
+.env
+.env.*
+!.env.example
+.env.local
+.env*.local
 
 # Native
 .kotlin/
@@ -17,25 +36,44 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
-.DS_Store
-*.pem
-
-# local env files
-.env*.local
-
-# typescript
-*.tsbuildinfo
+*.keystore
+*.apk
+*.aab
+*.ipa
 
 # generated native folders
 /ios
 /android
+android/.gradle/
+android/app/build/
+android/build/
+android/.idea/
+android/local.properties
+android/captures/
+android/.cxx/
+
+# build artifacts
+coverage/
+.cache/
+.parcel-cache/
+.eslintcache
+*.tsbuildinfo
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# temp files
+*.tmp
+*.temp
+
+# project-specific local files
+CLaude.md
+AGENTS.md
+AGENTS.d
+
+notes.txt
